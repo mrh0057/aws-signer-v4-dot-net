@@ -127,7 +127,7 @@ namespace Aws4RequestSigner
             {
                 canonicalRequest.Append(header.Key.ToLowerInvariant());
                 canonicalRequest.Append(":");
-                canonicalRequest.Append(string.Join(",", header.Value.Select(s => s.Trim())));
+                canonicalRequest.Append(string.Join(",", header.Value.Select(CleanHeader)));
                 canonicalRequest.Append("\n");
                 signedHeadersList.Add(header.Key.ToLowerInvariant());
             }
@@ -149,6 +149,32 @@ namespace Aws4RequestSigner
             request.Headers.TryAddWithoutValidation("Authorization", $"{ALGORITHM} Credential={_accessKey}/{credentialScope}, SignedHeaders={signedHeaders}, Signature={signature}");
 
             return request;
+        }
+
+        public static string CleanHeader(string value)
+        {
+            value = value.Trim();
+            var builder = new StringBuilder(value.Length);
+            var whiteSpaceReading = false;
+            for (var i = 0; i < value.Length; i++)
+            {
+                var c = value[i];
+                if (c == ' ')
+                {
+                    if (whiteSpaceReading == false)
+                    {
+                        whiteSpaceReading = true;
+                        builder.Append(c);
+                    }
+                }
+                else
+                {
+                    whiteSpaceReading = false;
+                    builder.Append(c);
+                }
+            }
+
+            return builder.ToString();
         }
 
         private static string GetCanonicalQueryParams(HttpRequestMessage request)
